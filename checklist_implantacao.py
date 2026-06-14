@@ -42,9 +42,20 @@ PASTA_FOTOS = "fotos_patrimonio"
 if not os.path.exists(PASTA_FOTOS):
     os.makedirs(PASTA_FOTOS)
 
+# --- INTERFACE NO CELULAR: SELEÇÃO DE OPERAÇÃO ANTES PARA FILTRAGEM ---
+
+col_unid, col_oper = st.columns(2)
+
+with col_unid:
+    unidade_selecionada = st.selectbox("Selecione sua Unidade:", ["BRASÍLIA", "GOIÂNIA"])
+
+with col_oper:
+    operacao_selecionada = st.selectbox("Tipo de Operação:", ["Implantação (Entrega)", "Explantação (Retirada)"])
+
+
 # --- VERIFICAÇÃO E LEITURA DOS ARQUIVOS EXTERNOS ---
 
-# 1. Lendo os Equipamentos
+# 1. Lendo os Equipamentos (Com auto-criação automática caso não exista)
 if os.path.exists(EXCEL_EQUIPAMENTOS):
     try:
         df_itens = pd.read_excel(EXCEL_EQUIPAMENTOS, sheet_name="cadastro_equipamentos")
@@ -55,23 +66,16 @@ if os.path.exists(EXCEL_EQUIPAMENTOS):
         st.error(f"Erro ao ler o arquivo de itens: {e}")
         st.stop()
 else:
-    st.error(f"Erro crítico: O arquivo '{EXCEL_EQUIPAMENTOS}' não foi encontrado!")
-    st.stop()
+    # Cria uma lista fictícia de teste se o arquivo não existir na nuvem
+    df_padrao_itens = pd.DataFrame({
+        "Item": ["Concentrador de Oxigênio", "Cama Elétrica Com 3 Movimentos_1", "Máscara Facial", "Cilindro de O2"],
+        "Tipo de Controle": ["Patrimônio", "Patrimônio", "Lote", "Patrimônio"]
+    })
+    with pd.ExcelWriter(EXCEL_EQUIPAMENTOS) as writer:
+        df_padrao_itens.to_excel(writer, sheet_name="cadastro_equipamentos", index=False)
+    df_itens = df_padrao_itens
 
-
-# --- INTERFACE NO CELULAR ---
-
-# 1. Filtro de Unidade e Tipo de Operação
-col_unid, col_oper = st.columns(2)
-
-with col_unid:
-    unidade_selecionada = st.selectbox("Selecione sua Unidade:", ["BRASÍLIA", "GOIÂNIA"])
-
-with col_oper:
-    operacao_selecionada = st.selectbox("Tipo de Operação:", ["Implantação (Entrega)", "Explantação (Retirada)"])
-
-
-# 2. Lendo os Pacientes Filtrando pela Unidade selecionada
+# 2. Lendo os Pacientes e a Pré-Implantação (Com auto-criação estruturada)
 dicionario_pre_implantacao = {}
 lista_pacientes = ["Selecione um paciente...", "➕ CADASTRAR NOVO PACIENTE (AVULSO)"]
 
@@ -79,13 +83,10 @@ if os.path.exists(EXCEL_PACIENTES):
     try:
         df_pacientes_raw = pd.read_excel(EXCEL_PACIENTES)
         df_pacientes_raw.columns = df_pacientes_raw.columns.str.strip()
-        
-        # Força as colunas a terem nomes padronizados
         df_pacientes_raw.columns = ["Nome", "Equipamentos Previstos", "Unidade"] + list(df_pacientes_raw.columns[3:])
         
-        # Filtra os pacientes que pertencem APENAS à unidade selecionada no topo
+        # Filtra por unidade escolhida
         df_filtrado = df_pacientes_raw[df_pacientes_raw["Unidade"].astype(str).str.upper() == unidade_selecionada]
-        
         lista_pacientes_unidade = df_filtrado["Nome"].dropna().tolist()
         lista_pacientes.extend(lista_pacientes_unidade)
         
@@ -101,9 +102,19 @@ if os.path.exists(EXCEL_PACIENTES):
         st.error(f"Erro ao ler a planilha de pacientes: {e}")
         st.stop()
 else:
-    st.warning(f"O arquivo '{EXCEL_PACIENTES}' não existe. Crie-o incluindo as colunas: Nome, Equipamentos Previstos, Unidade.")
+    # Se rodar na nuvem sem planilha, gera dados simulados para testes rápidos
+    df_exemplo_pac = pd.DataFrame({
+        "Nome": ["ANA SOUZA (TESTE BSB)", "CARLOS EDUARDO (TESTE GYN)"],
+        "Equipamentos Previstos": ["Concentrador de Oxigênio, Máscara Facial", "Cama Elétrica Com 3 Movimentos_1"],
+        "Unidade": ["BRASÍLIA", "GOIÂNIA"]
+    })
+    df_exemplo_pac.to_excel(EXCEL_PACIENTES, index=False)
+    
+    df_filtrado = df_exemplo_pac[df_exemplo_pac["Unidade"] == unidade_selecionada]
+    lista_pacientes.extend(df_filtrado["Nome"].tolist())
 
-# Campo para selecionar o paciente filtrado
+
+# 3. Campo para selecionar o paciente filtrado
 paciente_selecionado = st.selectbox("1. Escolha o Paciente:", lista_pacientes)
 
 nome_paciente_final = ""
@@ -115,14 +126,15 @@ else:
     if paciente_selecionado != "Selecione um paciente...":
         nome_paciente_final = paciente_selecionado
 
-# O fluxo continua se houver um paciente válido
+
+# O fluxo do checklist só aparece se tivermos um paciente válido
 if nome_paciente_final != "":
     
     st.markdown("---")
     st.markdown(f"### 2. Checklist de {operacao_selecionada}")
     st.caption("Marque os itens, informe o controle e registre a foto caso seja Patrimônio.")
     
-    # Se for EXPLANTE (Retirada), começamos com os itens desmarcados para o técnico selecionar o que está recolhendo
+    # Se for retirada, começa desmarcado. Se for entrega, puxa a pré-implantação
     if "Explantação" in operacao_selecionada:
         itens_planejados_paciente = []
     else:
@@ -159,13 +171,12 @@ if nome_paciente_final != "":
             
         else:
             agora = datetime.now()
-            data_registro = agora.strftime("%Y-%m-%d %H:%M:%S")
+            data_registro = grandmother = agora.strftime("%Y-%m-%d %H:%M:%S")
             data_nome_foto_base = agora.strftime("%Y%m%d_%H%M%S")
             
             nome_pac_limpo = nome_paciente_final.replace(" ", "_")
             tipo_acao_limpa = "ENTREGA" if "Implantação" in operacao_selecionada else "RETIRADA"
             
-            # Dados principais da linha do histórico
             dados_linha = {
                 "Data/Hora": data_registro,
                 "Unidade": unidade_selecionada,
@@ -196,7 +207,7 @@ if nome_paciente_final != "":
                 df_final = df_nova_linha
             df_final.to_excel(EXCEL_HISTORICO, index=False)
             
-            # Salvamento do paciente avulso se necessário (já incluindo a unidade dele!)
+            # Salvamento automático do novo paciente avulso na lista oficial
             if paciente_selecionado == "➕ CADASTRAR NOVO PACIENTE (AVULSO)":
                 if os.path.exists(EXCEL_PACIENTES):
                     df_pac_atual = pd.read_excel(EXCEL_PACIENTES)
