@@ -154,10 +154,11 @@ if nome_paciente_final != "":
             try:
                 df_nova_linha = pd.DataFrame([dados_linha])
                 # Puxa o histórico atual da nuvem, junta a nova linha e salva de volta
-                df_historico_atual = conn.read(worksheet="Página1", spreadsheet=URL_HISTORICO, ttl="0s")
+                df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, worksheet="Página1", ttl="0s")
                 df_final = pd.concat([df_historico_atual, df_nova_linha], ignore_index=True)
                 
-                conn.update(worksheet="Página1", spreadsheet=URL_HISTORICO, data=df_final)
+                conn.update(spreadsheet=URL_HISTORICO, worksheet="Página1", data=df_final)
+                conn.update(spreadsheet=URL_PACIENTES, worksheet="Página1", data=df_pac_final)
                 
                 # Se for avulso, adiciona também na planilha de pacientes ativos da nuvem
                 if paciente_selecionado == "➕ CADASTRAR NOVO PACIENTE (AVULSO)":
