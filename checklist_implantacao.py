@@ -15,8 +15,8 @@ st.markdown("---")
 # ==============================================================================
 # ==============================================================================
 # ⚠️ CONFIRA SE OS IDs ABAIXO SÃO EXATAMENTE OS DAS SUAS PLANILHAS ORIGINAIS
-URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_EQUIPAMENTOS = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_PACIENTES = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
 # A URL do Apps Script que você gerou na janela anônima deve vir EXCLUSIVAMENTE aqui:
