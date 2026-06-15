@@ -13,13 +13,15 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ ADICIONE AQUI AS COORDENADAS DAS SUAS PLANILHAS E DA SUA PONTE DE FOTOS
+# ==============================================================================
+# ⚠️ CONFIRA SE OS IDs ABAIXO SÃO EXATAMENTE OS DAS SUAS PLANILHAS ORIGINAIS
 URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
 URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
-# Cole aqui a URL longa que você copiou ao implantar o Google Apps Script:
+# A URL do Apps Script que você gerou na janela anônima deve vir EXCLUSIVAMENTE aqui:
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbyeHfTYHgu7H1kgMit_vo-Alf2D-zrPREVhRDtJHGlGTwE7hnvDQ1rZhMT0CXbBAEy6cQ/exec"
+# ==============================================================================
 # ==============================================================================
 
 # Cria a conexão oficial do Streamlit com o Google Sheets
