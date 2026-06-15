@@ -13,9 +13,9 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 # --- CONFIGURAÇÃO DOS ARQUIVOS E PASTAS ---
 # Links ou nomes das planilhas correspondentes no seu Google Drive
 # Você pode colar o Link de compartilhamento direto da planilha se preferir
-URL_EQUIPAMENTOS = "cadastro_equipamentos" 
-URL_PACIENTES = "lista_pacientes"
-URL_HISTORICO = "implantacoes"
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit?usp=sharing" 
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit?usp=sharing"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit?usp=sharing"
 
 PASTA_FOTOS = "fotos_patrimonio"               
 if not os.path.exists(PASTA_FOTOS):
