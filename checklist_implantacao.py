@@ -12,9 +12,9 @@ st.markdown("---")
 
 # ==============================================================================
 # ⚠️ CONFIGURAÇÃO COM OS LINKS DAS SUAS PLANILHAS
-URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
-URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
 # ==============================================================================
 
 # Cria a conexão oficial do Streamlit com o Google Sheets
