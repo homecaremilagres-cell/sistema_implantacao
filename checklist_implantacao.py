@@ -15,9 +15,9 @@ st.markdown("---")
 # ==============================================================================
 # ==============================================================================
 # ⚠️ CONFIRA SE OS IDs ABAIXO SÃO EXATAMENTE OS DAS SUAS PLANILHAS ORIGINAIS
-URL_EQUIPAMENTOS = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
-URL_PACIENTES = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
 
 # A URL do Apps Script que você gerou na janela anônima deve vir EXCLUSIVAMENTE aqui:
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbyeHfTYHgu7H1kgMit_vo-Alf2D-zrPREVhRDtJHGlGTwE7hnvDQ1rZhMT0CXbBAEy6cQ/exec"
