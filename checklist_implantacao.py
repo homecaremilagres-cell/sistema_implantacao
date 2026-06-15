@@ -44,7 +44,7 @@ with col_oper:
 try:
     # Lê a aba de equipamentos
     # Mude a linha 47 para este formato exatamente:
-    df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, ttl="5m")
+    df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
     df_itens.columns = ["Item", "Tipo de Controle"] + list(df_itens.columns[2:])
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
@@ -55,7 +55,11 @@ lista_pacientes = ["Selecione um paciente...", "➕ CADASTRAR NOVO PACIENTE (AVU
 
 try:
     # Lê a planilha de pacientes ativos
-    df_pacientes_raw = conn.read(worksheet="Página1", spreadsheet=URL_PACIENTES, ttl="1m")
+    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, worksheet="Página1", ttl="1m")
+
+# Logo abaixo da leitura, adicione ou verifique se existe esta linha para normalizar o texto:
+if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
+    df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
     df_pacientes_raw.columns = ["Nome", "Equipamentos Previstos", "Unidade"] + list(df_pacientes_raw.columns[3:])
     
     df_filtrado = df_pacientes_raw[df_pacientes_raw["Unidade"].astype(str).str.upper() == unidade_selecionada]
