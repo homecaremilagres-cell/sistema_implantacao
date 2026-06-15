@@ -53,7 +53,7 @@ except Exception as e:
 
 # Carrega a Lista de Pacientes Ativos
 try:
-    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, worksheet="Página1", ttl="1m")
+    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, ttl="1m")
     # Força a coluna 'Unidade' a ficar sempre em MAIÚSCULAS para bater com o selectbox
     if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
         df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
@@ -157,7 +157,7 @@ if len(equipamentos_para_exibir) > 0:
         else:
             try:
                 # 1. Carrega o histórico atual diretamente da nuvem
-                df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, worksheet="Página1", ttl="0s")
+                df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, ttl="0s")
                 
                 # 2. Prepara os novos dados recolhidos neste formulário
                 linhas_novas = []
@@ -179,7 +179,8 @@ if len(equipamentos_para_exibir) > 0:
                 df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
                 
                 # 4. Envia de volta para a nuvem salvando tudo
-                conn.update(spreadsheet=URL_HISTORICO, worksheet="Página1", data=df_final)
+                conn.update(spreadsheet=URL_HISTORICO, data=df_final)
+                conn.update(spreadsheet=URL_PACIENTES, data=df_pac_final)
                 
                 # 5. Se foi um paciente avulso, adiciona ele automaticamente na planilha de pacientes
                 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
