@@ -19,7 +19,7 @@ URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
 # Cole aqui a URL longa que você copiou ao implantar o Google Apps Script:
-URL_API_FOTOS = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB_DO_APPS_SCRIPT"
+URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbyeHfTYHgu7H1kgMit_vo-Alf2D-zrPREVhRDtJHGlGTwE7hnvDQ1rZhMT0CXbBAEy6cQ/exec"
 # ==============================================================================
 
 # Cria a conexão oficial do Streamlit com o Google Sheets
@@ -33,7 +33,7 @@ col_topo1, col_topo2 = st.columns(2)
 with col_topo1:
     unidade_selecionada = st.selectbox(
         "Selecione sua Unidade:", 
-        ["BRASILIA", "GOIANIA", "SAO PAULO", "RIO DE JANEIRO"]
+        ["BRASILIA", "GOIANIA"]
     )
 
 with col_topo2:
