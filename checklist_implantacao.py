@@ -1,174 +1,201 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
-import os
+from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="Gestão de Equipamentos Home Care", layout="centered")
+# Configuração da página do Streamlit
+st.set_page_config(page_title="Sistema de Movimentação Pro", layout="wide")
 
-# --- CONEXÃO NATIVA COM GOOGLE SHEETS ---
-# O Streamlit busca automaticamente as credenciais que você colou no menu 'Secrets'
+st.title("📋 Sistema de Movimentação Pro")
+st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
+st.markdown("---")
+
+# ==============================================================================
+# ⚠️ ADICIONE OS SEUS COPIADOS DO GOOGLE DRIVE AQUI DENTRO DAS ASPAS:
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit?usp=sharing"
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit?usp=sharing"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit?usp=sharing"
+# ==============================================================================
+
+# Cria a conexão oficial do Streamlit com o Google Sheets usando os Secrets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- CONFIGURAÇÃO DOS ARQUIVOS E PASTAS ---
-# Links ou nomes das planilhas correspondentes no seu Google Drive
-# Você pode colar o Link de compartilhamento direto da planilha se preferir
-URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit" 
-URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
-URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
+# ------------------------------------------------------------------------------
+# 1. ENTRADAS DO TOPO (Filtros de Unidade e Operação)
+# ------------------------------------------------------------------------------
+col_topo1, col_topo2 = st.columns(2)
 
-PASTA_FOTOS = "fotos_patrimonio"               
-if not os.path.exists(PASTA_FOTOS):
-    os.makedirs(PASTA_FOTOS)
+with col_topo1:
+    unidade_selecionada = st.selectbox(
+        "Selecione sua Unidade:", 
+        ["BRASÍLIA", "GOIÂNIA", "SÃO PAULO", "RIO DE JANEIRO"]
+    )
 
-# Visuais CSS
-st.markdown("""
-    <style>
-        .titulo-principal { color: #FF4B4B; font-size: 2.2rem; font-weight: bold; margin-bottom: 0.5rem; }
-        .subtitulo-descricao { color: #555; font-size: 1.0rem; margin-bottom: 2rem; }
-        div[data-testid="stCameraInput"] { margin-top: -15px; margin-bottom: 20px; }
-    </style>
-""", unsafe_allow_html=True)
+with col_topo2:
+    operacao_selecionada = st.selectbox(
+        "Tipo de Operação:", 
+        ["Implantação (Entrega)", "Recolhimento (Retirada)", "Substituição (Troca)"]
+    )
 
-st.markdown('<p class="titulo-principal">📋 Sistema de Movimentação Pro</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitulo-descricao">Operando em tempo real integrado ao Google Drive da Empresa.</p>', unsafe_allow_html=True)
+st.markdown("---")
 
-# Filtros iniciais
-col_unid, col_oper = st.columns(2)
-with col_unid:
-    unidade_selecionada = st.selectbox("Selecione sua Unidade:", ["BRASÍLIA", "GOIÂNIA"])
-with col_oper:
-    operacao_selecionada = st.selectbox("Tipo de Operação:", ["Implantação (Entrega)", "Explantação (Retirada)"])
+# ------------------------------------------------------------------------------
+# 2. CARREGAMENTO DOS DADOS (Google Sheets com tratamento de erros)
+# ------------------------------------------------------------------------------
 
-# --- LEITURA EM TEMPO REAL DO GOOGLE SHEETS ---
+# Carrega os Equipamentos Cadastrados
 try:
-    # Lê a aba de equipamentos
-    # Mude a linha 47 para este formato exatamente:
     df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
-    df_itens.columns = ["Item", "Tipo de Controle"] + list(df_itens.columns[2:])
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
-    st.stop()
+    df_itens = pd.DataFrame(columns=["Item", "Tipo de Controle"])
 
-dicionario_pre_implantacao = {}
-lista_pacientes = ["Selecione um paciente...", "➕ CADASTRAR NOVO PACIENTE (AVULSO)"]
-
+# Carrega a Lista de Pacientes Ativos
 try:
-    # Lê a planilha de pacientes ativos
     df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, worksheet="Página1", ttl="1m")
-
-# Logo abaixo da leitura, adicione ou verifique se existe esta linha para normalizar o texto:
-if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
-    df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
-    df_pacientes_raw.columns = ["Nome", "Equipamentos Previstos", "Unidade"] + list(df_pacientes_raw.columns[3:])
-    
-    df_filtrado = df_pacientes_raw[df_pacientes_raw["Unidade"].astype(str).str.upper() == unidade_selecionada]
-    lista_pacientes_unidade = df_filtrado["Nome"].dropna().tolist()
-    lista_pacientes.extend(lista_pacientes_unidade)
-    
-    for index, linha in df_filtrado.iterrows():
-        nome_pac = str(linha["Nome"]).strip()
-        itens_previstos = str(linha["Equipamentos Previstos"])
-        if itens_previstos and itens_previstos != "nan":
-            lista_itens = [i.strip() for i in itens_previstos.split(",")]
-        else:
-            lista_itens = []
-        dicionario_pre_implantacao[nome_pac] = lista_itens
+    # Força a coluna 'Unidade' a ficar sempre em MAIÚSCULAS para bater com o selectbox
+    if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
+        df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
 except Exception as e:
-    st.warning("Aguardando configuração ou dados na lista de pacientes do Google Sheets.")
+    st.error(f"Erro ao conectar com a planilha de Pacientes: {e}")
+    df_pacientes_raw = pd.DataFrame(columns=["Nome", "Equipamentos Previstos", "Unidade"])
 
-paciente_selecionado = st.selectbox("1. Escolha o Paciente:", lista_pacientes)
 
-nome_paciente_final = ""
-if paciente_selecionado == "➕ CADASTRAR NOVO PACIENTE (AVULSO)":
-    nome_avulso = st.text_input("Digite o nome completo do novo paciente:")
-    if nome_avulso.strip() != "":
-        nome_paciente_final = nome_avulso.strip().upper()
+# Filtrar pacientes da unidade selecionada
+if not df_pacientes_raw.empty:
+    df_pacientes_filtrados = df_pacientes_raw[df_pacientes_raw['Unidade'] == unidade_selecionada.strip().upper()]
 else:
-    if paciente_selecionado != "Selecione um paciente...":
-        nome_paciente_final = paciente_selecionado
+    df_pacientes_filtrados = pd.DataFrame()
 
-if nome_paciente_final != "":
-    st.markdown("---")
-    st.markdown(f"### 2. Checklist de {operacao_selecionada}")
+# ------------------------------------------------------------------------------
+# 3. INTERFACE PRINCIPAL E FLUXO DO CHECKLIST
+# ------------------------------------------------------------------------------
+
+if df_pacientes_filtrados.empty:
+    st.warning("Aguardando configuração ou dados na lista de pacientes do Google Sheets.")
     
-    if "Explantação" in operacao_selecionada:
-        itens_planejados_paciente = []
-    else:
-        itens_planejados_paciente = dicionario_pre_implantacao.get(nome_paciente_final, [])
+# Criar lista de seleção para o usuário
+opcoes_paciente = ["+ CADASTRAR NOVO PACIENTE (AVULSO)"]
+if not df_pacientes_filtrados.empty:
+    opcoes_paciente.extend(df_pacientes_filtrados['Nome'].tolist())
+
+paciente_selecionado = st.selectbox("1. Escolha o Paciente:", opcoes_paciente)
+
+# Variável para guardar quais itens serão exibidos na tela
+equipamentos_para_exibir = []
+
+if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
+    novo_paciente_nome = st.text_input("Digite o Nome Completo do Novo Paciente:")
+    # Para avulsos, libera a lista completa de equipamentos ativos para ele escolher
+    if not df_itens.empty:
+        equipamentos_para_exibir = df_itens['Item'].tolist()
+else:
+    novo_paciente_nome = ""
+    # Localiza o paciente selecionado na tabela filtrada
+    dados_do_paciente = df_pacientes_filtrados[df_pacientes_filtrados['Nome'] == paciente_selecionado]
     
-    respostas_tecnico = {}
+    if not dados_do_paciente.empty:
+        # Pega a string de equipamentos previstos (Ex: "Cama, Concentrador") e divide em lista
+        previstos_str = dados_do_paciente.iloc[0]['Equipamentos Previstos']
+        if pd.notna(previstos_str) and str(previstos_str).strip() != "":
+            equipamentos_para_exibir = [item.strip() for item in str(previstos_str).split(",")]
+
+# ------------------------------------------------------------------------------
+# 4. EXIBIÇÃO DINÂMICA DOS CHECKBOXES E CAMPOS
+# ------------------------------------------------------------------------------
+if registros_para_salvar := []:
+    pass
+
+if len(equipamentos_para_exibir) > 0:
+    st.markdown("### 2. Conferência de Equipamentos")
+    st.info("Marque apenas os equipamentos que estão sendo movimentados agora.")
     
-    for index, linha in df_itens.iterrows():
-        nome_item = str(linha["Item"])
-        tipo_controle = str(linha["Tipo de Controle"])
+    registros_para_salvar = []
+    
+    for equipamento in equipamentos_para_exibir:
+        # Procura o tipo de controle desse item no cadastro master
+        reg_item = df_itens[df_itens['Item'] == equipamento]
+        tipo_controle = reg_item.iloc[0]['Tipo de Controle'] if not reg_item.empty else "Por Quantidade"
         
-        ja_planejado = nome_item in itens_planejados_paciente
-        item_movimentado = st.checkbox(nome_item, value=ja_planejado, key=f"chk_{index}")
+        # Cria uma linha visual organizada para cada item
+        col_check, col_info, col_dado = st.columns([1, 4, 4])
         
-        if item_movimentado:
-            col1, col2 = st.columns([2, 3])
-            with col1:
-                id_registro = st.text_input(f"Digite o {tipo_controle}:", key=f"txt_{index}")
-                respostas_tecnico[f"{nome_item} ({tipo_controle})"] = id_registro
-            with col2:
-                if tipo_controle == "Patrimônio":
-                    foto_individual = st.camera_input(f"📸 Foto {nome_item}", key=f"cam_{index}")
-                    respostas_tecnico[f"Foto_{nome_item}"] = foto_individual
+        with col_check:
+            marcado = st.checkbox("Sim", key=f"check_{equipamento}")
+            
+        with col_info:
+            st.markdown(f"**{equipamento}** \n*Controle: {tipo_controle}*")
+            
+        with col_dado:
+            if marcado:
+                if tipo_controle == "Por Número de Série":
+                    dado_inserido = st.text_input(f"Número de Série do(a) {equipamento}:", key=f"input_{equipamento}")
+                elif tipo_controle == "Patrimônio":
+                    dado_inserido = st.text_input(f"Código do Patrimônio do(a) {equipamento}:", key=f"input_{equipamento}")
+                else: # Lote ou Quantidade
+                    dado_inserido = st.number_input(f"Quantidade de {equipamento}:", min_value=1, value=1, step=1, key=f"input_{equipamento}")
+                
+                # Guarda temporariamente as respostas válidas
+                registros_para_salvar.append({
+                    "Equipamento": equipamento,
+                    "Dado": str(dado_inserido)
+                })
+        st.markdown("---")
 
-        respostas_tecnico[nome_item] = "Sim" if item_movimentado else "Não"
-
-    st.markdown("---")
-    
-    if st.button(f"Finalizar e Salvar {operacao_selecionada.split(' ')[0]}", use_container_width=True):
-        if "Sim" not in respostas_tecnico.values():
-            st.error("Atenção: Você precisa marcar pelo menos um item para salvar!")
+    # ------------------------------------------------------------------------------
+    # 5. BOTÃO SALVAR E ATUALIZAÇÃO NO GOOGLE SHEETS
+    # ------------------------------------------------------------------------------
+    if st.button("💾 Finalizar e Salvar Movimentação", type="primary"):
+        # Descobre qual o nome final do paciente que vai pra tabela
+        nome_final_paciente = novo_paciente_nome if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)" else paciente_selecionado
+        
+        if not nome_final_paciente or nome_final_paciente.strip() == "":
+            st.error("Por favor, preencha o nome do paciente antes de salvar.")
+        elif len(registros_para_salvar) == 0:
+            st.warning("Nenhum equipamento foi marcado para movimentação.")
         else:
-            agora = datetime.now()
-            data_registro = agora.strftime("%Y-%m-%d %H:%M:%S")
-            data_nome_foto_base = agora.strftime("%Y%m%d_%H%M%S")
-            
-            nome_pac_limpo = nome_paciente_final.replace(" ", "_")
-            tipo_acao_limpa = "ENTREGA" if "Implantação" in operacao_selecionada else "RETIRADA"
-            
-            dados_linha = {
-                "Data/Hora": data_registro,
-                "Unidade": unidade_selecionada,
-                "Operação": tipo_acao_limpa,
-                "Paciente": nome_paciente_final
-            }
-            
-            # Processamento local de fotos (Podem ser enviadas para um Google Drive Folder futuramente)
-            for key_resposta, valor_resposta in respostas_tecnico.items():
-                if key_resposta.startswith("Foto_") and valor_resposta is not None:
-                    nome_equipamento = key_resposta.replace("Foto_", "").replace(" ", "_")
-                    nome_arquivo_foto = f"{unidade_selecionada}_{tipo_acao_limpa}_{nome_pac_limpo}_{data_nome_foto_base}_{nome_equipamento}.jpg"
-                    caminho_completo_foto = os.path.join(PASTA_FOTOS, nome_arquivo_foto)
-                    with open(caminho_completo_foto, "wb") as f:
-                        f.write(valor_resposta.getbuffer())
-                    dados_linha[key_resposta] = nome_arquivo_foto
-                elif not key_resposta.startswith("Foto_"):
-                    dados_linha[key_resposta] = valor_resposta
-            
-            # --- ESCREVE DIRETAMENTE NA PLANILHA DO GOOGLE SHEETS ---
             try:
-                df_nova_linha = pd.DataFrame([dados_linha])
-                # Puxa o histórico atual da nuvem, junta a nova linha e salva de volta
+                # 1. Carrega o histórico atual diretamente da nuvem
                 df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, worksheet="Página1", ttl="0s")
-                df_final = pd.concat([df_historico_atual, df_nova_linha], ignore_index=True)
                 
+                # 2. Prepara os novos dados recolhidos neste formulário
+                linhas_novas = []
+                data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                
+                for reg in registros_para_salvar:
+                    linhas_novas.append({
+                        "Data/Hora": data_hora_atual,
+                        "Unidade": unidade_selecionada,
+                        "Operação": operacao_selecionada,
+                        "Paciente": nome_final_paciente,
+                        "Equipamento": reg["Equipamento"],
+                        "Identificação/Qtd": reg["Dado"]
+                    })
+                
+                df_novas_linhas = pd.DataFrame(linhas_novas)
+                
+                # 3. Junta o histórico antigo com os novos dados
+                df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
+                
+                # 4. Envia de volta para a nuvem salvando tudo
                 conn.update(spreadsheet=URL_HISTORICO, worksheet="Página1", data=df_final)
-                conn.update(spreadsheet=URL_PACIENTES, worksheet="Página1", data=df_pac_final)
                 
-                # Se for avulso, adiciona também na planilha de pacientes ativos da nuvem
-                if paciente_selecionado == "➕ CADASTRAR NOVO PACIENTE (AVULSO)":
-                    df_pac_atual = conn.read(worksheet="Página1", spreadsheet=URL_PACIENTES, ttl="0s")
-                    if nome_paciente_final not in df_pac_atual.iloc[:,0].astype(str).values:
-                        df_novo_pac = pd.DataFrame([{"Nome": nome_paciente_final, "Equipamentos Previstos": "", "Unidade": unidade_selecionada}])
-                        df_pac_final = pd.concat([df_pac_atual, df_novo_pac], ignore_index=True)
-                        conn.update(worksheet="Página1", spreadsheet=URL_PACIENTES, data=df_pac_final)
+                # 5. Se foi um paciente avulso, adiciona ele automaticamente na planilha de pacientes
+                if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
+                    lista_equipamentos_novos = ", ".join([r["Equipamento"] for r in registros_para_salvar])
+                    nova_linha_paciente = pd.DataFrame([{
+                        "Nome": nome_final_paciente,
+                        "Equipamentos Previstos": lista_equipamentos_novos,
+                        "Unidade": unidade_selecionada
+                    }])
+                    df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
+                    conn.update(spreadsheet=URL_PACIENTES, worksheet="Página1", data=df_pac_final)
                 
-                st.success(f"Registrado com sucesso diretamente no Google Sheets!")
+                st.success(f"✅ Sucesso! Movimentação de {nome_final_paciente} registrada no Google Sheets!")
                 st.balloons()
-            except Exception as e:
-                st.error(f"Erro ao salvar os dados no Google Sheets: {e}")
+                
+            except Exception as erro_salvar:
+                st.error(f"Erro crítico ao tentar salvar no Google Drive: {erro_salvar}")
+else:
+    if paciente_selecionado != "+ CADASTRAR NOVO PACIENTE (AVULSO)":
+        st.info("Nenhum equipamento previsto cadastrado para este paciente no Google Sheets.")
