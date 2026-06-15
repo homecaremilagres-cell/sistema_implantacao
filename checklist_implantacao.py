@@ -11,11 +11,10 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ COLE OS LINKS COMPLETOS EXATAMENTE ASSIM (COM O 'r' ANTES DAS ASPAS):
-URL_EQUIPAMENTOS = r"https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
-URL_PACIENTES = r"https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4/edit"
-URL_HISTORICO = r"https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug/edit"
-# ==============================================================================
+# ⚠️ IDs PUROS EXTRAÍDOS DAS SUAS PLANILHAS (CONFIGURAÇÃO PERFEITA)
+URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
+URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 # ==============================================================================
 
 # Cria a conexão oficial do Streamlit com o Google Sheets usando os Secrets
@@ -29,7 +28,7 @@ col_topo1, col_topo2 = st.columns(2)
 with col_topo1:
     unidade_selecionada = st.selectbox(
         "Selecione sua Unidade:", 
-        ["BRASÍLIA", "GOIÂNIA", "SÃO PAULO", "RIO DE JANEIRO"]
+        ["BRASÍLIA", "GOIÂNIA"]
     )
 
 with col_topo2:
@@ -44,14 +43,14 @@ st.markdown("---")
 # 2. CARREGAMENTO DOS DADOS (Google Sheets com tratamento de erros)
 # ------------------------------------------------------------------------------
 
-# Carrega os Equipamentos Cadastrados
+# Carrega os Equipamentos Cadastrados (Aba em minúsculo e sem acento funciona 100%)
 try:
     df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
     df_itens = pd.DataFrame(columns=["Item", "Tipo de Controle"])
 
-# Carrega a Lista de Pacientes Ativos
+# Carrega a Lista de Pacientes Ativos (Puxa automaticamente a 1ª aba sem usar a palavra "Página1")
 try:
     df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, ttl="1m")
     # Força a coluna 'Unidade' a ficar sempre em MAIÚSCULAS para bater com o selectbox
@@ -104,14 +103,11 @@ else:
 # ------------------------------------------------------------------------------
 # 4. EXIBIÇÃO DINÂMICA DOS CHECKBOXES E CAMPOS
 # ------------------------------------------------------------------------------
-if registros_para_salvar := []:
-    pass
+registros_para_salvar = []
 
 if len(equipamentos_para_exibir) > 0:
     st.markdown("### 2. Conferência de Equipamentos")
     st.info("Marque apenas os equipamentos que estão sendo movimentados agora.")
-    
-    registros_para_salvar = []
     
     for equipamento in equipamentos_para_exibir:
         # Procura o tipo de controle desse item no cadastro master
@@ -156,7 +152,7 @@ if len(equipamentos_para_exibir) > 0:
             st.warning("Nenhum equipamento foi marcado para movimentação.")
         else:
             try:
-                # 1. Carrega o histórico atual diretamente da nuvem
+                # 1. Carrega o histórico atual diretamente da nuvem (Sem indicar nome de aba com acento)
                 df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, ttl="0s")
                 
                 # 2. Prepara os novos dados recolhidos neste formulário
@@ -178,9 +174,8 @@ if len(equipamentos_para_exibir) > 0:
                 # 3. Junta o histórico antigo com os novos dados
                 df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
                 
-                # 4. Envia de volta para a nuvem salvando tudo
+                # 4. Envia de volta para a nuvem salvando tudo de forma direta
                 conn.update(spreadsheet=URL_HISTORICO, data=df_final)
-                conn.update(spreadsheet=URL_PACIENTES, data=df_pac_final)
                 
                 # 5. Se foi um paciente avulso, adiciona ele automaticamente na planilha de pacientes
                 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
@@ -191,7 +186,7 @@ if len(equipamentos_para_exibir) > 0:
                         "Unidade": unidade_selecionada
                     }])
                     df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
-                    conn.update(spreadsheet=URL_PACIENTES, worksheet="Página1", data=df_pac_final)
+                    conn.update(spreadsheet=URL_PACIENTES, data=df_pac_final)
                 
                 st.success(f"✅ Sucesso! Movimentação de {nome_final_paciente} registrada no Google Sheets!")
                 st.balloons()
