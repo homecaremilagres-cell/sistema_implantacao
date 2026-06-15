@@ -11,10 +11,11 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ ADICIONE OS SEUS COPIADOS DO GOOGLE DRIVE AQUI DENTRO DAS ASPAS:
-URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit?usp=sharing"
-URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit?usp=sharing"
-URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit?usp=sharing"
+# ⚠️ COLE OS LINKS COMPLETOS EXATAMENTE ASSIM (COM O 'r' ANTES DAS ASPAS):
+URL_EQUIPAMENTOS = r"https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
+URL_PACIENTES = r"https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4/edit"
+URL_HISTORICO = r"https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug/edit"
+# ==============================================================================
 # ==============================================================================
 
 # Cria a conexão oficial do Streamlit com o Google Sheets usando os Secrets
