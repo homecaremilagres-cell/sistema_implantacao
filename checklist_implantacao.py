@@ -11,48 +11,48 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ IDs PUROS EXTRAÍDOS DAS SUAS PLANILHAS (CONFIGURAÇÃO PERFEITA)
+# ⚠️ CONFIGURAÇÃO COM OS LINKS DAS SUAS PLANILHAS
 URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
 URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 # ==============================================================================
 
-# Cria a conexão oficial do Streamlit com o Google Sheets usando os Secrets
+# Cria a conexão oficial do Streamlit com o Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ------------------------------------------------------------------------------
-# 1. ENTRADAS DO TOPO (Filtros de Unidade e Operação)
+# 1. ENTRADAS DO TOPO (Filtros sem acento para combinar com a sua planilha)
 # ------------------------------------------------------------------------------
 col_topo1, col_topo2 = st.columns(2)
 
 with col_topo1:
     unidade_selecionada = st.selectbox(
         "Selecione sua Unidade:", 
-        ["BRASILIA", "GOIANIA"]
+        ["BRASILIA", "GOIANIA", "SAO PAULO", "RIO DE JANEIRO"]
     )
+
 with col_topo2:
     operacao_selecionada = st.selectbox(
         "Tipo de Operação:", 
-        ["Implantação (Entrega)", "Recolhimento (Retirada)", "Substituição (Troca)"]
+        ["Implantacao (Entrega)", "Recolhimento (Retirada)", "Substituicao (Troca)"]
     )
 
 st.markdown("---")
 
 # ------------------------------------------------------------------------------
-# 2. CARREGAMENTO DOS DADOS (Google Sheets com tratamento de erros)
+# 2. CARREGAMENTO DOS DADOS
 # ------------------------------------------------------------------------------
 
-# Carrega os Equipamentos Cadastrados (Aba em minúsculo e sem acento funciona 100%)
+# Carrega os Equipamentos Cadastrados
 try:
     df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
     df_itens = pd.DataFrame(columns=["Item", "Tipo de Controle"])
 
-# Carrega a Lista de Pacientes Ativos (Puxa automaticamente a 1ª aba sem usar a palavra "Página1")
+# Carrega a Lista de Pacientes Ativos (Buscando a aba 'pacientes' que você renomeou)
 try:
-    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, ttl="1m")
-    # Força a coluna 'Unidade' a ficar sempre em MAIÚSCULAS para bater com o selectbox
+    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, worksheet="pacientes", ttl="1m")
     if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
         df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
 except Exception as e:
@@ -85,16 +85,13 @@ equipamentos_para_exibir = []
 
 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
     novo_paciente_nome = st.text_input("Digite o Nome Completo do Novo Paciente:")
-    # Para avulsos, libera a lista completa de equipamentos ativos para ele escolher
     if not df_itens.empty:
         equipamentos_para_exibir = df_itens['Item'].tolist()
 else:
     novo_paciente_nome = ""
-    # Localiza o paciente selecionado na tabela filtrada
     dados_do_paciente = df_pacientes_filtrados[df_pacientes_filtrados['Nome'] == paciente_selecionado]
     
     if not dados_do_paciente.empty:
-        # Pega a string de equipamentos previstos (Ex: "Cama, Concentrador") e divide em lista
         previstos_str = dados_do_paciente.iloc[0]['Equipamentos Previstos']
         if pd.notna(previstos_str) and str(previstos_str).strip() != "":
             equipamentos_para_exibir = [item.strip() for item in str(previstos_str).split(",")]
@@ -109,11 +106,10 @@ if len(equipamentos_para_exibir) > 0:
     st.info("Marque apenas os equipamentos que estão sendo movimentados agora.")
     
     for equipamento in equipamentos_para_exibir:
-        # Procura o tipo de controle desse item no cadastro master
         reg_item = df_itens[df_itens['Item'] == equipamento]
+        # Procura por 'Patrimonio' sem acento para bater com o que alterou na planilha
         tipo_controle = reg_item.iloc[0]['Tipo de Controle'] if not reg_item.empty else "Por Quantidade"
         
-        # Cria uma linha visual organizada para cada item
         col_check, col_info, col_dado = st.columns([1, 4, 4])
         
         with col_check:
@@ -126,12 +122,11 @@ if len(equipamentos_para_exibir) > 0:
             if marcado:
                 if tipo_controle == "Por Número de Série":
                     dado_inserido = st.text_input(f"Número de Série do(a) {equipamento}:", key=f"input_{equipamento}")
-                elif tipo_controle == "Patrimônio":
+                elif tipo_controle == "Patrimonio":
                     dado_inserido = st.text_input(f"Código do Patrimônio do(a) {equipamento}:", key=f"input_{equipamento}")
-                else: # Lote ou Quantidade
+                else:
                     dado_inserido = st.number_input(f"Quantidade de {equipamento}:", min_value=1, value=1, step=1, key=f"input_{equipamento}")
                 
-                # Guarda temporariamente as respostas válidas
                 registros_para_salvar.append({
                     "Equipamento": equipamento,
                     "Dado": str(dado_inserido)
@@ -142,7 +137,6 @@ if len(equipamentos_para_exibir) > 0:
     # 5. BOTÃO SALVAR E ATUALIZAÇÃO NO GOOGLE SHEETS
     # ------------------------------------------------------------------------------
     if st.button("💾 Finalizar e Salvar Movimentação", type="primary"):
-        # Descobre qual o nome final do paciente que vai pra tabela
         nome_final_paciente = novo_paciente_nome if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)" else paciente_selecionado
         
         if not nome_final_paciente or nome_final_paciente.strip() == "":
@@ -151,10 +145,9 @@ if len(equipamentos_para_exibir) > 0:
             st.warning("Nenhum equipamento foi marcado para movimentação.")
         else:
             try:
-                # 1. Carrega o histórico atual diretamente da nuvem (Sem indicar nome de aba com acento)
+                # Carrega o histórico atual (Usando a primeira aba padrão da planilha de histórico)
                 df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, ttl="0s")
                 
-                # 2. Prepara os novos dados recolhidos neste formulário
                 linhas_novas = []
                 data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 
@@ -169,14 +162,11 @@ if len(equipamentos_para_exibir) > 0:
                     })
                 
                 df_novas_linhas = pd.DataFrame(linhas_novas)
-                
-                # 3. Junta o histórico antigo com os novos dados
                 df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
                 
-                # 4. Envia de volta para a nuvem salvando tudo de forma direta
+                # Salva os dados na planilha de histórico e de pacientes
                 conn.update(spreadsheet=URL_HISTORICO, data=df_final)
                 
-                # 5. Se foi um paciente avulso, adiciona ele automaticamente na planilha de pacientes
                 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
                     lista_equipamentos_novos = ", ".join([r["Equipamento"] for r in registros_para_salvar])
                     nova_linha_paciente = pd.DataFrame([{
@@ -185,7 +175,7 @@ if len(equipamentos_para_exibir) > 0:
                         "Unidade": unidade_selecionada
                     }])
                     df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
-                    conn.update(spreadsheet=URL_PACIENTES, data=df_pac_final)
+                    conn.update(spreadsheet=URL_PACIENTES, worksheet="pacientes", data=df_pac_final)
                 
                 st.success(f"✅ Sucesso! Movimentação de {nome_final_paciente} registrada no Google Sheets!")
                 st.balloons()
