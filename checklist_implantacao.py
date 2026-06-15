@@ -43,7 +43,7 @@ with col_oper:
 # --- LEITURA EM TEMPO REAL DO GOOGLE SHEETS ---
 try:
     # Lê a aba de equipamentos
-    df_itens = conn.read(worksheet="cadastro_equipamentos", ttl="5m")
+    df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
     df_itens.columns = ["Item", "Tipo de Controle"] + list(df_itens.columns[2:])
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
