@@ -93,9 +93,15 @@ else:
     
     if not dados_do_paciente.empty:
         previstos_str = dados_do_paciente.iloc[0]['Equipamentos Previstos']
+        
+        # Se tiver equipamentos definidos na planilha do paciente, usa eles
         if pd.notna(previstos_str) and str(previstos_str).strip() != "":
-            equipamentos_para_exibir = [item.strip() for item in str(previstos_str).split(",")]
-
+            equipamentos_para_exibir = [item.strip() for item in str(previstos_str).split(",") if item.strip()]
+        
+        # 🌟 AQUI ESTÁ A MÁGICA DOS TESTES: Se a coluna estiver vazia, abre TODOS os equipamentos do cadastro!
+        else:
+            if not df_itens.empty:
+                equipamentos_para_exibir = df_itens['Item'].tolist()
 # ------------------------------------------------------------------------------
 # 4. EXIBIÇÃO DINÂMICA DOS CHECKBOXES E CAMPOS
 # ------------------------------------------------------------------------------
