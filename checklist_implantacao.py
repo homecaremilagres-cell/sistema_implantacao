@@ -28,7 +28,7 @@ col_topo1, col_topo2 = st.columns(2)
 with col_topo1:
     unidade_selecionada = st.selectbox(
         "Selecione sua Unidade:", 
-        ["BRASILIA", "GOIANIA", "SAO PAULO", "RIO DE JANEIRO"]
+        ["BRASILIA", "GOIANIA"]
     )
 
 with col_topo2:
