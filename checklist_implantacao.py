@@ -19,7 +19,7 @@ URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
 # Cole aqui a sua URL do Apps Script (a que termina em /exec):
-URL_API_FOTOS = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB_DO_APPS_SCRIPT"
+URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
 
 # 🌟 CONTROLADOR DE RESET TOTAL (Garante que o celular limpe tudo)
