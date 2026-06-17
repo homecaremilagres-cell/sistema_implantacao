@@ -13,35 +13,41 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ==============================================================================
-# ⚠️ CONFIRA SE OS IDs ABAIXO SÃO EXATAMENTE OS DAS SUAS PLANILHAS ORIGINAIS
-URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
-URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
-URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
+# ⚠️ ADICIONE AQUI AS COORDENADAS DAS SUAS PLANILHAS E DA SUA PONTE DE FOTOS
+URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
+URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
-# A URL do Apps Script que você gerou na janela anônima deve vir EXCLUSIVAMENTE aqui:
-URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
+# Cole aqui a URL longa que você copiou ao implantar o Google Apps Script:
+URL_API_FOTOS = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB_DO_APPS_SCRIPT"
 # ==============================================================================
-# ==============================================================================
+
+# 🌟 CONTROLADOR DE RESET TOTAL (Garante que o celular limpe tudo)
+if "versao_tela" not in st.session_state:
+    st.session_state["versao_tela"] = 0
+
+v = st.session_state["versao_tela"]
 
 # Cria a conexão oficial do Streamlit com o Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ------------------------------------------------------------------------------
-# 1. ENTRADAS DO TOPO
+# 1. ENTRADAS DO TOPO (Com chaves dinâmicas para resetar ao início)
 # ------------------------------------------------------------------------------
 col_topo1, col_topo2 = st.columns(2)
 
 with col_topo1:
     unidade_selecionada = st.selectbox(
         "Selecione sua Unidade:", 
-        ["BRASILIA", "GOIANIA"]
+        ["BRASILIA", "GOIANIA", "SAO PAULO", "RIO DE JANEIRO"],
+        key=f"unidade_{v}"
     )
 
 with col_topo2:
     operacao_selecionada = st.selectbox(
         "Tipo de Operação:", 
-        ["Implantacao (Entrega)", "Recolhimento (Retirada)", "Substituicao (Troca)"]
+        ["Implantacao (Entrega)", "Recolhimento (Retirada)", "Substituicao (Troca)"],
+        key=f"operacao_{v}"
     )
 
 st.markdown("---")
@@ -75,12 +81,12 @@ opcoes_paciente = ["+ CADASTRAR NOVO PACIENTE (AVULSO)"]
 if not df_pacientes_filtrados.empty:
     opcoes_paciente.extend(df_pacientes_filtrados['Nome'].tolist())
 
-paciente_selecionado = st.selectbox("1. Escolha o Paciente:", opcoes_paciente)
+paciente_selecionado = st.selectbox("1. Escolha o Paciente:", opcoes_paciente, key=f"paciente_{v}")
 
 equipamentos_para_exibir = []
 
 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
-    novo_paciente_nome = st.text_input("Digite o Nome Completo do Novo Paciente:")
+    novo_paciente_nome = st.text_input("Digite o Nome Completo do Novo Paciente:", key=f"novo_pac_{v}")
     if not df_itens.empty:
         equipamentos_para_exibir = df_itens['Item'].tolist()
 else:
@@ -96,7 +102,7 @@ else:
                 equipamentos_para_exibir = df_itens['Item'].tolist()
 
 # ------------------------------------------------------------------------------
-# 4. EXIBIÇÃO DINÂMICA COM ENTRADA DE CÂMERA (FOTO PADRONIZADA)
+# 4. EXIBIÇÃO DINÂMICA COM ENTRADA DE CÂMERA
 # ------------------------------------------------------------------------------
 registros_para_salvar = []
 
@@ -108,15 +114,16 @@ if len(equipamentos_para_exibir) > 0:
         col_check, col_info, col_cam = st.columns([1, 3, 5])
         
         with col_check:
-            marcado = st.checkbox("Sim", key=f"check_{equipamento}")
+            # Chave dinamicizada com a versão v
+            marcado = st.checkbox("Sim", key=f"check_{equipamento}_{v}")
             
         with col_info:
             st.markdown(f"**{equipamento}**")
             
         with col_cam:
             if marcado:
-                # Aciona a câmera nativa do dispositivo (Celular ou Computador)
-                foto_capturada = st.camera_input(f"Tirar foto do(a) {equipamento}", key=f"cam_{equipamento}")
+                # Chave dinamicizada com a versão v força o celular a zerar a câmera antiga
+                foto_capturada = st.camera_input(f"Tirar foto do(a) {equipamento}", key=f"cam_{equipamento}_{v}")
                 if foto_capturada:
                     registros_para_salvar.append({
                         "Equipamento": equipamento,
@@ -124,10 +131,10 @@ if len(equipamentos_para_exibir) > 0:
                     })
         st.markdown("---")
 
-  # ------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
     # 5. PROCESSAMENTO E GRAVAÇÃO NO GOOGLE SHEETS
     # ------------------------------------------------------------------------------
-    if st.button("💾 Finalizar e Salvar Movimentação", type="primary"):
+    if st.button("💾 Finalizar e Salvar Movimentação", type="primary", key=f"btn_salvar_{v}"):
         nome_final_paciente = novo_paciente_nome if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)" else paciente_selecionado
         
         if not nome_final_paciente or nome_final_paciente.strip() == "":
@@ -139,7 +146,6 @@ if len(equipamentos_para_exibir) > 0:
             linhas_novas = []
             data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             
-            # Criamos uma barra de progresso visual para o envio de fotos
             progresso = st.progress(0)
             status_texto = st.empty()
             
@@ -148,14 +154,11 @@ if len(equipamentos_para_exibir) > 0:
                 status_texto.text(f"Enviando foto do(a) {item_nome} para o Google Drive...")
                 
                 try:
-                    # Lê os bytes da imagem capturada e converte em Base64
                     bytes_data = reg["ArquivoBuffer"].getvalue()
                     base64_data = base64.b64encode(bytes_data).decode("utf-8")
                     
-                    # Nome estruturado do arquivo que será salvo na pasta do Drive
                     nome_arquivo_drive = f"{unidade_selecionada}_{nome_final_paciente}_{item_nome}_{datetime.now().strftime('%d%m%Y_%H%M%S')}.jpg"
                     
-                    # Envia os dados estruturados para a API do Apps Script
                     payload = {
                         "fileName": nome_arquivo_drive,
                         "mimeType": "image/jpeg",
@@ -177,14 +180,13 @@ if len(equipamentos_para_exibir) > 0:
                     sucesso_geral = False
                     break
                 
-                # Guarda as referências da linha com o link clicável da imagem
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
                     "Unidade": unidade_selecionada,
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
-                    "Identificação/Qtd": link_foto_drive  # Armazena o link direto da imagem
+                    "Identificação/Qtd": link_foto_drive
                 })
                 
                 progresso.progress((i + 1) / len(registros_para_salvar))
@@ -209,23 +211,16 @@ if len(equipamentos_para_exibir) > 0:
                         df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
                         conn.update(spreadsheet=URL_PACIENTES, worksheet="pacientes", data=df_pac_final)
                     
-                    # Limpa os componentes visuais de progresso
                     status_texto.empty()
                     progresso.empty()
                     
-                    # Mensagem de sucesso e balões antes do reset
                     st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
                     st.balloons()
                     
-                    # Limpa os registros da memória
-                    registros_para_salvar.clear()
+                    # 🌟 O SEGREDO DO RESET NO CELULAR:
+                    # Incrementa o número da versão. Isso muda o nome de TODAS as chaves da tela.
+                    st.session_state["versao_tela"] += 1
                     
-                    # 🌟 ESSA É A CHAVE DA LIMPEZA TOTAL DA TELA:
-                    # Limpa o st.session_state para esvaziar os checkboxes e fotos guardadas no navegador
-                    for chave in list(st.session_state.keys()):
-                        del st.session_state[chave]
-                    
-                    # Pausa rápida para curtir os balões e reinicia 100% zerado
                     import time
                     time.sleep(2)
                     st.rerun()
