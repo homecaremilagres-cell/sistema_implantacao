@@ -13,13 +13,13 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ COORDENADAS OFICIAIS DAS SUAS PLANILHAS E DO APPS SCRIPT
-URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit?usp=sharing"
-URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4/edit?usp=sharing"
-URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug/edit?usp=sharing"
+# ⚠️ COORDENADAS OFICIAIS COM OS IDs PUROS (Mais seguro contra erro 404)
+URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
+URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
 # Cole aqui a sua URL do Apps Script (a que termina em /exec):
-URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
+URL_API_FOTOS = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB_DO_APPS_SCRIPT"
 # ==============================================================================
 
 # 🌟 CONTROLADOR DE RESET TOTAL (Garante que o celular limpe tudo)
@@ -53,7 +53,7 @@ with col_topo2:
 st.markdown("---")
 
 # ------------------------------------------------------------------------------
-# 2. CARREGAMENTO DOS DADOS DIRETO PELA URL
+# 2. CARREGAMENTO DOS DADOS DIRETO PELO ID
 # ------------------------------------------------------------------------------
 try:
     df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, ttl="5m")
@@ -164,7 +164,7 @@ if len(equipamentos_para_exibir) > 0:
                     }
                     
                     resposta = requests.post(URL_API_FOTOS, json=payload)
-                    resultado_json = response_dict = resposta.json()
+                    resultado_json = resposta.json()
                     
                     if resultado_json.get("success"):
                         link_foto_drive = resultado_json.get("url")
