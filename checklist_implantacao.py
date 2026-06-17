@@ -124,7 +124,7 @@ if len(equipamentos_para_exibir) > 0:
                     })
         st.markdown("---")
 
-   # ------------------------------------------------------------------------------
+  # ------------------------------------------------------------------------------
     # 5. PROCESSAMENTO E GRAVAÇÃO NO GOOGLE SHEETS
     # ------------------------------------------------------------------------------
     if st.button("💾 Finalizar e Salvar Movimentação", type="primary"):
@@ -213,14 +213,19 @@ if len(equipamentos_para_exibir) > 0:
                     status_texto.empty()
                     progresso.empty()
                     
-                    # 🌟 Mensagem de sucesso e balões antes do reset automático
+                    # Mensagem de sucesso e balões antes do reset
                     st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
                     st.balloons()
                     
                     # Limpa os registros da memória
                     registros_para_salvar.clear()
                     
-                    # Pequena pausa para o usuário ver os balões e recarrega a página zerada!
+                    # 🌟 ESSA É A CHAVE DA LIMPEZA TOTAL DA TELA:
+                    # Limpa o st.session_state para esvaziar os checkboxes e fotos guardadas no navegador
+                    for chave in list(st.session_state.keys()):
+                        del st.session_state[chave]
+                    
+                    # Pausa rápida para curtir os balões e reinicia 100% zerado
                     import time
                     time.sleep(2)
                     st.rerun()
