@@ -18,8 +18,8 @@ URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
 URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
-# Cole aqui a URL longa que você copiou ao implantar o Google Apps Script:
-URL_API_FOTOS = "COLE_AQUI_A_SUA_URL_DO_APP_DA_WEB_DO_APPS_SCRIPT"
+# Use a mesma URL do Apps Script que você já tinha gerado antes:
+URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
 
 # 🌟 CONTROLADOR DE RESET TOTAL (Garante que o celular limpe tudo)
