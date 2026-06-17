@@ -209,10 +209,20 @@ if len(equipamentos_para_exibir) > 0:
                         df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
                         conn.update(spreadsheet=URL_PACIENTES, worksheet="pacientes", data=df_pac_final)
                     
-                    status_texto.empty()
+                   status_texto.empty()
                     progresso.empty()
+                    
+                    # 🌟 AQUI ESTÁ O AJUSTE DE LIMPEZA:
                     st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
                     st.balloons()
+                    
+                    # Limpa os registros da memória para não acumular no próximo paciente
+                    registros_para_salvar.clear()
+                    
+                    # Aguarda 2 segundos para o usuário ver os balões e reinicia a tela limpa!
+                    import time
+                    time.sleep(2)
+                    st.rerun()
                     
                 except Exception as erro_salvar:
                     st.error(f"Erro crítico ao registrar tabelas de histórico: {erro_salvar}")
