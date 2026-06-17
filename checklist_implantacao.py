@@ -14,9 +14,9 @@ st.markdown("---")
 
 # ==============================================================================
 # ⚠️ COORDENADAS OFICIAIS COM OS IDs PUROS (Mais seguro contra erro 404)
-URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
-URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
 
 # Cole aqui a sua URL do Apps Script (a que termina em /exec):
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
