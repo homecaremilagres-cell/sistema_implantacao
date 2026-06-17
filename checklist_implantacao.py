@@ -180,7 +180,7 @@ if len(equipamentos_para_exibir) > 0:
                 
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
-                    "Unidade": unity := unidade_selecionada,
+                    "Unidade": unidade_selecionada,
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
