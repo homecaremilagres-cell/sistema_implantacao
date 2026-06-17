@@ -20,7 +20,7 @@ URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabo
 URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
 
 # A URL do Apps Script que você gerou na janela anônima deve vir EXCLUSIVAMENTE aqui:
-URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbyeHfTYHgu7H1kgMit_vo-Alf2D-zrPREVhRDtJHGlGTwE7hnvDQ1rZhMT0CXbBAEy6cQ/exec"
+URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
 # ==============================================================================
 
