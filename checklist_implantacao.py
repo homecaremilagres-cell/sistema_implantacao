@@ -13,12 +13,12 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ ADICIONE AQUI AS COORDENADAS DAS SUAS PLANILHAS E DA SUA PONTE DE FOTOS
-URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
-URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
+# ⚠️ COORDENADAS OFICIAIS DAS SUAS PLANILHAS E DO APPS SCRIPT
+URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit?usp=sharing"
+URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4/edit?usp=sharing"
+URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug/edit?usp=sharing"
 
-# Use a mesma URL do Apps Script que você já tinha gerado antes:
+# Cole aqui a sua URL do Apps Script (a que termina em /exec):
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
 
@@ -53,16 +53,16 @@ with col_topo2:
 st.markdown("---")
 
 # ------------------------------------------------------------------------------
-# 2. CARREGAMENTO DOS DADOS (Google Sheets)
+# 2. CARREGAMENTO DOS DADOS DIRETO PELA URL
 # ------------------------------------------------------------------------------
 try:
-    df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, worksheet="cadastro_equipamentos", ttl="5m")
+    df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, ttl="5m")
 except Exception as e:
     st.error(f"Erro ao conectar com a planilha de Equipamentos: {e}")
     df_itens = pd.DataFrame(columns=["Item", "Tipo de Controle"])
 
 try:
-    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, worksheet="pacientes", ttl="1m")
+    df_pacientes_raw = conn.read(spreadsheet=URL_PACIENTES, ttl="1m")
     if not df_pacientes_raw.empty and 'Unidade' in df_pacientes_raw.columns:
         df_pacientes_raw['Unidade'] = df_pacientes_raw['Unidade'].astype(str).str.upper().str.strip()
 except Exception as e:
@@ -87,7 +87,7 @@ equipamentos_para_exibir = []
 
 if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
     novo_paciente_nome = st.text_input("Digite o Nome Completo do Novo Paciente:", key=f"novo_pac_{v}")
-    if not df_itens.empty:
+    if not df_itens.empty and 'Item' in df_itens.columns:
         equipamentos_para_exibir = df_itens['Item'].tolist()
 else:
     novo_paciente_nome = ""
@@ -98,7 +98,7 @@ else:
         if pd.notna(previstos_str) and str(previstos_str).strip() != "":
             equipamentos_para_exibir = [item.strip() for item in str(previstos_str).split(",") if item.strip()]
         else:
-            if not df_itens.empty:
+            if not df_itens.empty and 'Item' in df_itens.columns:
                 equipamentos_para_exibir = df_itens['Item'].tolist()
 
 # ------------------------------------------------------------------------------
@@ -114,7 +114,6 @@ if len(equipamentos_para_exibir) > 0:
         col_check, col_info, col_cam = st.columns([1, 3, 5])
         
         with col_check:
-            # Chave dinamicizada com a versão v
             marcado = st.checkbox("Sim", key=f"check_{equipamento}_{v}")
             
         with col_info:
@@ -122,7 +121,6 @@ if len(equipamentos_para_exibir) > 0:
             
         with col_cam:
             if marcado:
-                # Chave dinamicizada com a versão v força o celular a zerar a câmera antiga
                 foto_capturada = st.camera_input(f"Tirar foto do(a) {equipamento}", key=f"cam_{equipamento}_{v}")
                 if foto_capturada:
                     registros_para_salvar.append({
@@ -166,7 +164,7 @@ if len(equipamentos_para_exibir) > 0:
                     }
                     
                     resposta = requests.post(URL_API_FOTOS, json=payload)
-                    resultado_json = resposta.json()
+                    resultado_json = response_dict = resposta.json()
                     
                     if resultado_json.get("success"):
                         link_foto_drive = resultado_json.get("url")
@@ -182,7 +180,7 @@ if len(equipamentos_para_exibir) > 0:
                 
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
-                    "Unidade": unidade_selecionada,
+                    "Unidade": unity := unidade_selecionada,
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
@@ -209,7 +207,7 @@ if len(equipamentos_para_exibir) > 0:
                             "Unidade": unidade_selecionada
                         }])
                         df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
-                        conn.update(spreadsheet=URL_PACIENTES, worksheet="pacientes", data=df_pac_final)
+                        conn.update(spreadsheet=URL_PACIENTES, data=df_pac_final)
                     
                     status_texto.empty()
                     progresso.empty()
@@ -217,8 +215,6 @@ if len(equipamentos_para_exibir) > 0:
                     st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
                     st.balloons()
                     
-                    # 🌟 O SEGREDO DO RESET NO CELULAR:
-                    # Incrementa o número da versão. Isso muda o nome de TODAS as chaves da tela.
                     st.session_state["versao_tela"] += 1
                     
                     import time
