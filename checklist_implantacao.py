@@ -124,7 +124,7 @@ if len(equipamentos_para_exibir) > 0:
                     })
         st.markdown("---")
 
-    # ------------------------------------------------------------------------------
+   # ------------------------------------------------------------------------------
     # 5. PROCESSAMENTO E GRAVAÇÃO NO GOOGLE SHEETS
     # ------------------------------------------------------------------------------
     if st.button("💾 Finalizar e Salvar Movimentação", type="primary"):
@@ -209,17 +209,18 @@ if len(equipamentos_para_exibir) > 0:
                         df_pac_final = pd.concat([df_pacientes_raw, nova_linha_paciente], ignore_index=True)
                         conn.update(spreadsheet=URL_PACIENTES, worksheet="pacientes", data=df_pac_final)
                     
-                   status_texto.empty()
+                    # Limpa os componentes visuais de progresso
+                    status_texto.empty()
                     progresso.empty()
                     
-                    # 🌟 AQUI ESTÁ O AJUSTE DE LIMPEZA:
+                    # 🌟 Mensagem de sucesso e balões antes do reset automático
                     st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
                     st.balloons()
                     
-                    # Limpa os registros da memória para não acumular no próximo paciente
+                    # Limpa os registros da memória
                     registros_para_salvar.clear()
                     
-                    # Aguarda 2 segundos para o usuário ver os balões e reinicia a tela limpa!
+                    # Pequena pausa para o usuário ver os balões e recarrega a página zerada!
                     import time
                     time.sleep(2)
                     st.rerun()
