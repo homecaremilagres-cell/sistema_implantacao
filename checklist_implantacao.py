@@ -14,8 +14,8 @@ st.markdown("---")
 
 # ==============================================================================
 # ⚠️ ADICIONE AQUI AS COORDENADAS DAS SUAS PLANILHAS E DA SUA PONTE DE FOTOS
-URL_EQUIPAMENTOS = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
-URL_PACIENTES = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_EQUIPAMENTOS = "19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6YWw4"
+URL_PACIENTES = "1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc"
 URL_HISTORICO = "18iMjG81Gq-fVs3Fgx1Qv50aTtYwPeHxB8VM2mSfnFug"
 
 # Use a mesma URL do Apps Script que você já tinha gerado antes:
