@@ -17,7 +17,6 @@ st.markdown("---")
 URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
 URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
 URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
-
 # Cole aqui a sua URL do Apps Script (a que termina em /exec):
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
@@ -125,10 +124,8 @@ if len(equipamentos_para_exibir) > 0:
         if marcado:
             with col_cam:
                 if operacao_selecionada == "Substituicao (Troca)":
-                    # Passo 1: Foto do equipamento saindo
                     foto_retirada = st.camera_input(f"📸 1. Foto do Equipamento que SAI ({equipamento})", key=f"cam_ret_{equipamento}_{v}")
                     
-                    # Passo 2: Só libera a segunda câmera se a primeira já tiver sido capturada!
                     if foto_retirada:
                         st.markdown("---")
                         foto_entrega = st.camera_input(f"📸 2. Foto do Equipamento que ENTRA ({equipamento})", key=f"cam_ent_{equipamento}_{v}")
@@ -141,7 +138,6 @@ if len(equipamentos_para_exibir) > 0:
                                 "Tipo": "Troca"
                             })
                 else:
-                    # Operações Normais (Usa apenas 1 foto)
                     foto_unica = st.camera_input(f"📸 Tirar foto do(a) {equipamento}", key=f"cam_uni_{equipamento}_{v}")
                     if foto_unica:
                         registros_para_salvar.append({
@@ -187,8 +183,8 @@ if len(equipamentos_para_exibir) > 0:
                 item_nome = reg["Equipamento"]
                 status_texto.text(f"Processando mídia do(a) {item_nome}...")
                 
-                link_retirada_final = ""
-                link_entrega_final = ""
+                link_retirada_final = "N/A"
+                link_entrega_final = "N/A"
                 
                 if reg["Tipo"] == "Troca":
                     link_retirada_final = enviar_foto_drive(reg["BufferRetirada"], "SAIDA")
@@ -205,11 +201,12 @@ if len(equipamentos_para_exibir) > 0:
                         sucesso_geral = False
                         break
                     
-                    # Organiza onde o link vai cair dependendo da operação normal
                     if operacao_selecionada == "Recolhimento (Retirada)":
                         link_retirada_final = link_foto_u
+                        link_entrega_final = "N/A"
                     else:  # Implantação ou Inventário
                         link_entrega_final = link_foto_u
+                        link_retirada_final = "N/A"
                 
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
@@ -231,6 +228,7 @@ if len(equipamentos_para_exibir) > 0:
                     df_novas_linhas = pd.DataFrame(linhas_novas)
                     df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
                     
+                    # Salva os dados atualizados de volta no Sheets
                     conn.update(spreadsheet=URL_HISTORICO, data=df_final)
                     
                     if paciente_selecionado == "+ CADASTRAR NOVO PACIENTE (AVULSO)":
