@@ -13,7 +13,7 @@ st.subheader("Operando em tempo real integrado ao Google Drive da Empresa.")
 st.markdown("---")
 
 # ==============================================================================
-# ⚠️ COORDENADAS OFICIAIS COM OS IDs PUROS (Mais seguro contra erro 404)
+# ⚠️ COORDENADAS OFICIAIS COM OS IDs PUROS
 URL_EQUIPAMENTOS = "https://docs.google.com/spreadsheets/d/1bp351uYvt8gusDbp9ih-JUm45ITyAZbX-tYAo4r54fc/edit"
 URL_PACIENTES = "https://docs.google.com/spreadsheets/d/19B6LCQJLN8vAhRQZphiEabotUsnWk5_5tKugc6sYWs4/edit"
 URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50aTtYwPeHxB8VM2mSfnFug/edit"
@@ -22,17 +22,16 @@ URL_HISTORICO = "https://docs.google.com/spreadsheets/d/18iMjG81Gq-fVs3FgxlQv50a
 URL_API_FOTOS = "https://script.google.com/macros/s/AKfycbz8KA5UVROkQFVk9QEi69mxgfeiBr-uOMRTgCaoTxYwqDCjhM6PCitR1kuIIB5cynsZMg/exec"
 # ==============================================================================
 
-# 🌟 CONTROLADOR DE RESET TOTAL (Garante que o celular limpe tudo)
+# Controladores de reset de tela para o celular
 if "versao_tela" not in st.session_state:
     st.session_state["versao_tela"] = 0
 
 v = st.session_state["versao_tela"]
 
-# Cria a conexão oficial do Streamlit com o Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ------------------------------------------------------------------------------
-# 1. ENTRADAS DO TOPO (Com chaves dinâmicas para resetar ao início)
+# 1. ENTRADAS DO TOPO (Adicionada a opção Inventário)
 # ------------------------------------------------------------------------------
 col_topo1, col_topo2 = st.columns(2)
 
@@ -46,14 +45,14 @@ with col_topo1:
 with col_topo2:
     operacao_selecionada = st.selectbox(
         "Tipo de Operação:", 
-        ["Implantacao (Entrega)", "Recolhimento (Retirada)", "Substituicao (Troca)"],
+        ["Implantacao (Entrega)", "Recolhimento (Retirada)", "Substituicao (Troca)", "Inventario (Conferencia)"],
         key=f"operacao_{v}"
     )
 
 st.markdown("---")
 
 # ------------------------------------------------------------------------------
-# 2. CARREGAMENTO DOS DADOS DIRETO PELO ID
+# 2. CARREGAMENTO DOS DADOS
 # ------------------------------------------------------------------------------
 try:
     df_itens = conn.read(spreadsheet=URL_EQUIPAMENTOS, ttl="5m")
@@ -102,16 +101,25 @@ else:
                 equipamentos_para_exibir = df_itens['Item'].tolist()
 
 # ------------------------------------------------------------------------------
-# 4. EXIBIÇÃO DINÂMICA COM ENTRADA DE CÂMERA
+# 4. EXIBIÇÃO DINÂMICA COM ENTRADA DE CÂMERA (Tratamento para 1 ou 2 fotos)
 # ------------------------------------------------------------------------------
 registros_para_salvar = []
 
 if len(equipamentos_para_exibir) > 0:
     st.markdown("### 2. Conferência por Foto")
-    st.info("Marque o equipamento e use a câmera do aparelho para registrar a etiqueta, patrimônio ou lote.")
+    
+    if operacao_selecionada == "Substituicao (Troca)":
+        st.warning("🔄 Modo Substituição ativo: Registre a foto do equipamento que SAI e do equipamento que ENTRA.")
+    else:
+        st.info("Marque o equipamento e use a câmera para registrar a foto de controle.")
     
     for equipamento in equipamentos_para_exibir:
-        col_check, col_info, col_cam = st.columns([1, 3, 5])
+        # Se for troca, usamos colunas colaterais para caber as duas câmeras lado a lado
+        if operacao_selecionada == "Substituicao (Troca)":
+            col_check, col_info, col_cam1, col_cam2 = st.columns([1, 3, 4, 4])
+        else:
+            col_check, col_info, col_cam1 = st.columns([1, 3, 8])
+            col_cam2 = None
         
         with col_check:
             marcado = st.checkbox("Sim", key=f"check_{equipamento}_{v}")
@@ -119,13 +127,28 @@ if len(equipamentos_para_exibir) > 0:
         with col_info:
             st.markdown(f"**{equipamento}**")
             
-        with col_cam:
-            if marcado:
-                foto_capturada = st.camera_input(f"Tirar foto do(a) {equipamento}", key=f"cam_{equipamento}_{v}")
-                if foto_capturada:
+        if marcado:
+            if operacao_selecionada == "Substituicao (Troca)":
+                with col_cam1:
+                    foto_retirada = st.camera_input(f"📸 1. Foto do Equipamento que SAI ({equipamento})", key=f"cam_ret_{equipamento}_{v}")
+                with col_cam2:
+                    foto_entrega = st.camera_input(f"📸 2. Foto do Equipamento que ENTRA ({equipamento})", key=f"cam_ent_{equipamento}_{v}")
+                
+                if foto_retirada and foto_entrega:
                     registros_para_salvar.append({
                         "Equipamento": equipamento,
-                        "ArquivoBuffer": foto_capturada
+                        "BufferRetirada": foto_retirada,
+                        "BufferEntrega": foto_entrega,
+                        "Tipo": "Troca"
+                    })
+            else:
+                with col_cam1:
+                    foto_unica = st.camera_input(f"📸 Tirar foto do(a) {equipamento}", key=f"cam_uni_{equipamento}_{v}")
+                if foto_unica:
+                    registros_para_salvar.append({
+                        "Equipamento": equipamento,
+                        "BufferUnico": foto_unica,
+                        "Tipo": "Padrao"
                     })
         st.markdown("---")
 
@@ -147,36 +170,48 @@ if len(equipamentos_para_exibir) > 0:
             progresso = st.progress(0)
             status_texto = st.empty()
             
+            # Função interna para simplificar o envio de cada imagem para a API do Drive
+            def enviar_foto_drive(buffer_arquivo, sufixo):
+                nome_arq = f"{unidade_selecionada}_{nome_final_paciente}_{item_nome}_{sufixo}_{datetime.now().strftime('%d%m%Y_%H%M%S')}.jpg"
+                try:
+                    bytes_data = buffer_arquivo.getvalue()
+                    base64_data = base64.b64encode(bytes_data).decode("utf-8")
+                    payload = {"fileName": nome_arq, "mimeType": "image/jpeg", "base64Data": base64_data}
+                    resposta = requests.post(URL_API_FOTOS, json=payload)
+                    res_json = resposta.json()
+                    if res_json.get("success"):
+                        return res_json.get("url")
+                except:
+                    pass
+                return None
+
             for i, reg in enumerate(registros_para_salvar):
                 item_nome = reg["Equipamento"]
-                status_texto.text(f"Enviando foto do(a) {item_nome} para o Google Drive...")
+                status_texto.text(f"Processando mídia do(a) {item_nome}...")
                 
-                try:
-                    bytes_data = reg["ArquivoBuffer"].getvalue()
-                    base64_data = base64.b64encode(bytes_data).decode("utf-8")
+                link_foto_1 = ""
+                link_foto_2 = ""
+                
+                if reg["Tipo"] == "Troca":
+                    # Envia a foto da Retirada
+                    link_foto_1 = enviar_foto_drive(reg["BufferRetirada"], "SAIDA")
+                    # Envia a foto da Entrega
+                    link_foto_2 = enviar_foto_drive(reg["BufferEntrega"], "ENTRADA")
                     
-                    nome_arquivo_drive = f"{unidade_selecionada}_{nome_final_paciente}_{item_nome}_{datetime.now().strftime('%d%m%Y_%H%M%S')}.jpg"
-                    
-                    payload = {
-                        "fileName": nome_arquivo_drive,
-                        "mimeType": "image/jpeg",
-                        "base64Data": base64_data
-                    }
-                    
-                    resposta = requests.post(URL_API_FOTOS, json=payload)
-                    resultado_json = resposta.json()
-                    
-                    if resultado_json.get("success"):
-                        link_foto_drive = resultado_json.get("url")
-                    else:
-                        st.error(f"Falha no script do Drive para {item_nome}: {resultado_json.get('error')}")
+                    if not link_foto_1 or not link_foto_2:
+                        st.error(f"Falha ao enviar uma das fotos do par de troca para: {item_nome}")
                         sucesso_geral = False
                         break
-                        
-                except Exception as e_upload:
-                    st.error(f"Erro ao conectar com o servidor de fotos para {item_nome}: {e_upload}")
-                    sucesso_geral = False
-                    break
+                    
+                    # Na planilha de controle, salva as duas referências separadas por vírgula ou em formato legível
+                    link_final_registro = f"RETIRADA: {link_foto_1} | ENTREGA: {link_foto_2}"
+                else:
+                    link_foto_1 = enviar_foto_drive(reg["BufferUnico"], "REGISTRO")
+                    if not link_foto_1:
+                        st.error(f"Falha ao enviar a imagem do(a) {item_nome} para o Drive.")
+                        sucesso_geral = False
+                        break
+                    link_final_registro = link_foto_1
                 
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
@@ -184,7 +219,7 @@ if len(equipamentos_para_exibir) > 0:
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
-                    "Identificação/Qtd": link_foto_drive
+                    "Identificação/Qtd": link_final_registro
                 })
                 
                 progresso.progress((i + 1) / len(registros_para_salvar))
@@ -212,9 +247,10 @@ if len(equipamentos_para_exibir) > 0:
                     status_texto.empty()
                     progresso.empty()
                     
-                    st.success(f"✅ Sucesso completo! Movimentação registrada e fotos salvas no Drive!")
+                    st.success(f"✅ Sucesso completo! Movimentação registrada!")
                     st.balloons()
                     
+                    # Muda a versão da tela para forçar a limpeza total dos campos no celular
                     st.session_state["versao_tela"] += 1
                     
                     import time
