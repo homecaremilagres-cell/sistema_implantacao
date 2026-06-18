@@ -208,14 +208,16 @@ if len(equipamentos_para_exibir) > 0:
                         link_entrega_final = link_foto_u
                         link_retirada_final = "N/A"
                 
+               # Garante que se o link for N/A, ele não quebre a formatação, 
+                # e se for um link real, o Sheets entenda o tamanho expandido.
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
                     "Unidade": unidade_selecionada,
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
-                    "Foto Retirada": link_retirada_final,
-                    "Foto Entrega": link_entrega_final
+                    "Foto Retirada": str(link_retirada_final).strip(),
+                    "Foto Entrega": str(link_entrega_final).strip()
                 })
                 
                 progresso.progress((i + 1) / len(registros_para_salvar))
@@ -226,8 +228,17 @@ if len(equipamentos_para_exibir) > 0:
                     df_historico_atual = conn.read(spreadsheet=URL_HISTORICO, ttl="0s")
                     
                     df_novas_linhas = pd.DataFrame(linhas_novas)
+                    
+                    # Garante conversão explícita para Texto em ambas as colunas antes de juntar
+                    for col in ["Foto Retirada", "Foto Entrega"]:
+                        if col in df_historico_atual.columns:
+                            df_historico_atual[col] = df_historico_atual[col].astype(str)
+                        df_novas_linhas[col] = df_novas_linhas[col].astype(str)
+                    
                     df_final = pd.concat([df_historico_atual, df_novas_linhas], ignore_index=True)
                     
+                    # Atualiza forçando o envio limpo de strings estruturadas
+                    conn.update(spreadsheet=URL_HISTORICO, data=df_final)                    
                     # Salva os dados atualizados de volta no Sheets
                     conn.update(spreadsheet=URL_HISTORICO, data=df_final)
                     
