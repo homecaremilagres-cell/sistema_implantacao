@@ -31,7 +31,7 @@ v = st.session_state["versao_tela"]
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ------------------------------------------------------------------------------
-# 1. ENTRADAS DO TOPO (Adicionada a opção Inventário)
+# 1. ENTRADAS DO TOPO
 # ------------------------------------------------------------------------------
 col_topo1, col_topo2 = st.columns(2)
 
@@ -101,7 +101,7 @@ else:
                 equipamentos_para_exibir = df_itens['Item'].tolist()
 
 # ------------------------------------------------------------------------------
-# 4. EXIBIÇÃO DINÂMICA COM ENTRADA DE CÂMERA (Tratamento para 1 ou 2 fotos)
+# 4. EXIBIÇÃO DINÂMICA COM PASSO A PASSO DE CÂMERA (Evita travar o celular)
 # ------------------------------------------------------------------------------
 registros_para_salvar = []
 
@@ -109,17 +109,12 @@ if len(equipamentos_para_exibir) > 0:
     st.markdown("### 2. Conferência por Foto")
     
     if operacao_selecionada == "Substituicao (Troca)":
-        st.warning("🔄 Modo Substituição ativo: Registre a foto do equipamento que SAI e do equipamento que ENTRA.")
+        st.warning("🔄 Modo Substituição ativo: Registre primeiro quem sai, depois quem entra.")
     else:
         st.info("Marque o equipamento e use a câmera para registrar a foto de controle.")
     
     for equipamento in equipamentos_para_exibir:
-        # Se for troca, usamos colunas colaterais para caber as duas câmeras lado a lado
-        if operacao_selecionada == "Substituicao (Troca)":
-            col_check, col_info, col_cam1, col_cam2 = st.columns([1, 3, 4, 4])
-        else:
-            col_check, col_info, col_cam1 = st.columns([1, 3, 8])
-            col_cam2 = None
+        col_check, col_info, col_cam = st.columns([1, 3, 8])
         
         with col_check:
             marcado = st.checkbox("Sim", key=f"check_{equipamento}_{v}")
@@ -128,28 +123,32 @@ if len(equipamentos_para_exibir) > 0:
             st.markdown(f"**{equipamento}**")
             
         if marcado:
-            if operacao_selecionada == "Substituicao (Troca)":
-                with col_cam1:
+            with col_cam:
+                if operacao_selecionada == "Substituicao (Troca)":
+                    # Passo 1: Foto do equipamento saindo
                     foto_retirada = st.camera_input(f"📸 1. Foto do Equipamento que SAI ({equipamento})", key=f"cam_ret_{equipamento}_{v}")
-                with col_cam2:
-                    foto_entrega = st.camera_input(f"📸 2. Foto do Equipamento que ENTRA ({equipamento})", key=f"cam_ent_{equipamento}_{v}")
-                
-                if foto_retirada and foto_entrega:
-                    registros_para_salvar.append({
-                        "Equipamento": equipamento,
-                        "BufferRetirada": foto_retirada,
-                        "BufferEntrega": foto_entrega,
-                        "Tipo": "Troca"
-                    })
-            else:
-                with col_cam1:
+                    
+                    # Passo 2: Só libera a segunda câmera se a primeira já tiver sido capturada!
+                    if foto_retirada:
+                        st.markdown("---")
+                        foto_entrega = st.camera_input(f"📸 2. Foto do Equipamento que ENTRA ({equipamento})", key=f"cam_ent_{equipamento}_{v}")
+                        
+                        if foto_entrega:
+                            registros_para_salvar.append({
+                                "Equipamento": equipamento,
+                                "BufferRetirada": foto_retirada,
+                                "BufferEntrega": foto_entrega,
+                                "Tipo": "Troca"
+                            })
+                else:
+                    # Operações Normais (Usa apenas 1 foto)
                     foto_unica = st.camera_input(f"📸 Tirar foto do(a) {equipamento}", key=f"cam_uni_{equipamento}_{v}")
-                if foto_unica:
-                    registros_para_salvar.append({
-                        "Equipamento": equipamento,
-                        "BufferUnico": foto_unica,
-                        "Tipo": "Padrao"
-                    })
+                    if foto_unica:
+                        registros_para_salvar.append({
+                            "Equipamento": equipamento,
+                            "BufferUnico": foto_unica,
+                            "Tipo": "Padrao"
+                        })
         st.markdown("---")
 
     # ------------------------------------------------------------------------------
@@ -170,7 +169,6 @@ if len(equipamentos_para_exibir) > 0:
             progresso = st.progress(0)
             status_texto = st.empty()
             
-            # Função interna para simplificar o envio de cada imagem para a API do Drive
             def enviar_foto_drive(buffer_arquivo, sufixo):
                 nome_arq = f"{unidade_selecionada}_{nome_final_paciente}_{item_nome}_{sufixo}_{datetime.now().strftime('%d%m%Y_%H%M%S')}.jpg"
                 try:
@@ -189,29 +187,29 @@ if len(equipamentos_para_exibir) > 0:
                 item_nome = reg["Equipamento"]
                 status_texto.text(f"Processando mídia do(a) {item_nome}...")
                 
-                link_foto_1 = ""
-                link_foto_2 = ""
+                link_retirada_final = ""
+                link_entrega_final = ""
                 
                 if reg["Tipo"] == "Troca":
-                    # Envia a foto da Retirada
-                    link_foto_1 = enviar_foto_drive(reg["BufferRetirada"], "SAIDA")
-                    # Envia a foto da Entrega
-                    link_foto_2 = enviar_foto_drive(reg["BufferEntrega"], "ENTRADA")
+                    link_retirada_final = enviar_foto_drive(reg["BufferRetirada"], "SAIDA")
+                    link_entrega_final = enviar_foto_drive(reg["BufferEntrega"], "ENTRADA")
                     
-                    if not link_foto_1 or not link_foto_2:
-                        st.error(f"Falha ao enviar uma das fotos do par de troca para: {item_nome}")
+                    if not link_retirada_final or not link_entrega_final:
+                        st.error(f"Falha ao processar par de fotos da troca de: {item_nome}")
                         sucesso_geral = False
                         break
-                    
-                    # Na planilha de controle, salva as duas referências separadas por vírgula ou em formato legível
-                    link_final_registro = f"RETIRADA: {link_foto_1} | ENTREGA: {link_foto_2}"
                 else:
-                    link_foto_1 = enviar_foto_drive(reg["BufferUnico"], "REGISTRO")
-                    if not link_foto_1:
-                        st.error(f"Falha ao enviar a imagem do(a) {item_nome} para o Drive.")
+                    link_foto_u = enviar_foto_drive(reg["BufferUnico"], "REGISTRO")
+                    if not link_foto_u:
+                        st.error(f"Falha ao enviar imagem do(a) {item_nome}.")
                         sucesso_geral = False
                         break
-                    link_final_registro = link_foto_1
+                    
+                    # Organiza onde o link vai cair dependendo da operação normal
+                    if operacao_selecionada == "Recolhimento (Retirada)":
+                        link_retirada_final = link_foto_u
+                    else:  # Implantação ou Inventário
+                        link_entrega_final = link_foto_u
                 
                 linhas_novas.append({
                     "Data/Hora": data_hora_atual,
@@ -219,7 +217,8 @@ if len(equipamentos_para_exibir) > 0:
                     "Operação": operacao_selecionada,
                     "Paciente": nome_final_paciente,
                     "Equipamento": item_nome,
-                    "Identificação/Qtd": link_final_registro
+                    "Foto Retirada": link_retirada_final,
+                    "Foto Entrega": link_entrega_final
                 })
                 
                 progresso.progress((i + 1) / len(registros_para_salvar))
@@ -250,7 +249,6 @@ if len(equipamentos_para_exibir) > 0:
                     st.success(f"✅ Sucesso completo! Movimentação registrada!")
                     st.balloons()
                     
-                    # Muda a versão da tela para forçar a limpeza total dos campos no celular
                     st.session_state["versao_tela"] += 1
                     
                     import time
